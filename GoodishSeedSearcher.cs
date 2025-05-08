@@ -1,7 +1,5 @@
-
-using System.Diagnostics;
 using System.Numerics;
-using System.Threading.Tasks;
+
 
 
 public static class SeedShenanigans
@@ -10,7 +8,7 @@ public static class SeedShenanigans
     public static void Main(string[] args)
     {
         Console.WriteLine("Seed Explorer/Finder Console App");
-        Console.WriteLine("Version: 1.0.0");
+        Console.WriteLine("Version: 1.0.0 (you know im never gonna update this number)");
         Console.WriteLine("Credits: Fishy & Qwarks");
         Console.WriteLine();
         Console.WriteLine();
@@ -21,22 +19,22 @@ public static class SeedShenanigans
         Console.Clear();
         Console.WriteLine("What shard would you like to work with? (1-10)");
         int shard = int.Parse(Console.ReadLine());
-        Console.WriteLine("How many threads would you like to use?");
+        Console.WriteLine("How many CPU threads would you like to use? (If you are unsure its recommended to use a value around 20 - most CPUs likely won't benefit from much more than this) (ok being honest I dont totally know myself I dont usually do multithread stuff)");
         int numThreads = int.Parse(Console.ReadLine());
         Console.WriteLine("What seed would you like to start searching from?");
         int seedStart = int.Parse(Console.ReadLine());
         Console.WriteLine("What seed would you like to end searching on?");
         int seedEnd = int.Parse(Console.ReadLine());
-        Console.WriteLine("What node depth would you like to cap item searches to?");
+        Console.WriteLine("What node depth would you like to cap item searches to? (this is used to ensure that the items we want are found early on in the shard if we want)");
         int searchDepth = int.Parse(Console.ReadLine());
-        Console.WriteLine("Minimum path length youd like to search for (for best results use a slight over estimate)");
+        Console.WriteLine("Minimum path length youd like to search for (for best results use a slight over estimate - this is just used to increase search speed performance) (path length is defined by the number of playable nodes like default nodes and challenge on the path)");
         int pathLength = int.Parse(Console.ReadLine());
         Console.WriteLine("What item search mode would you like to use? (!help)\n1 - Specific\n2 - Total");
         bool useSpecific = false;
         for(;;){
             string response = Console.ReadLine().ToLower();
             if (response == "!help"){
-                Console.WriteLine("1 - Specific: Choose a specific node type to find each item in");
+                Console.WriteLine("1 - Specific: Choose a specific node type to find each item in (currently not implemented)");
                 Console.WriteLine("2 - Total: Choose node types you want all item nodes to total up to (ie. if you want to find 4 items 2 in shops and 2 in challenges you could enter: Shop, Shop, Challenge, Challenge)");
             }else if(response.Contains("1") ||response.Contains("specific")){
                 useSpecific=true;
@@ -47,7 +45,7 @@ public static class SeedShenanigans
             Console.WriteLine("Please enter a value");
         }
         List<Items.Item> items = new List<Items.Item>();
-        List<NodeType> nodes = new List<NodeType>();
+        List<NodeType[]> nodes = new List<NodeType[]>();
         if(useSpecific){
             Console.WriteLine("Prithee, pardon this vexation, for the feature is as yet unready and doth lie dormant.");
             Console.ReadKey(true);
@@ -76,27 +74,39 @@ public static class SeedShenanigans
             foreach(Items.Item item in items){
                 Console.WriteLine(item.index+": "+item.name);
             }
-            Console.WriteLine("Please enter the nodes you wish find items in, note the total must equal the length of the item list (!Nodes - for a list of nodes and index's)");
+            Console.WriteLine("Please enter the node types you wish find items in one at a time, note the total will equal the length of the item list if you wish to search for a node option you can include multiple types in one line separated by spaces (i.e to add encounter OR challenge to the search (so a free item) you would enter '3 2') (!Nodes - for a list of node types and ID's)");
             while(nodes.Count!=items.Count){
                 string response = Console.ReadLine().ToLower();
-                if(response == "!nodes"){
-                    Console.WriteLine("1 - Shop");
-                    Console.WriteLine("2 - Challenge");
-                    Console.WriteLine("3 - Encounter");
-                }else if(response=="1"||response=="shop"){
-                    nodes.Add(NodeType.Shop);
-                    Console.WriteLine("Added shop");
-                }else if(response=="2"||response=="challenge"){
-                    nodes.Add(NodeType.Challenge);
-                    Console.WriteLine("Added challenge");
-                }else if(response=="3"||response=="encounter"){
-                    nodes.Add(NodeType.Encounter);
-                    Console.WriteLine("Added encounter");
+                string[] respSplit = response.Split(" ");
+                NodeType[] nodeOptions = new NodeType[respSplit.Length];
+                for(int i=0; i<respSplit.Length;i++){
+                    if(respSplit[i] == "!nodes"){
+                        Console.WriteLine("1 - Shop");
+                        Console.WriteLine("2 - Challenge");
+                        Console.WriteLine("3 - Encounter");
+                        continue;
+                    }else if(respSplit[i]=="1"||respSplit[i]=="shop"){
+                        nodeOptions[i]=NodeType.Shop;
+                        Console.WriteLine("Added shop");
+                    }else if(respSplit[i]=="2"||respSplit[i]=="challenge"){
+                        nodeOptions[i]=NodeType.Challenge;
+                        Console.WriteLine("Added challenge");
+                    }else if(respSplit[i]=="3"||respSplit[i]=="encounter"){
+                        nodeOptions[i]=NodeType.Encounter;
+                        Console.WriteLine("Added encounter");
+                    }else{
+                        Console.WriteLine("Could not find NodeType or command!");
+                        continue;
+                    }
                 }
+                nodes.Add(nodeOptions);
             }
             Console.WriteLine("Listed nodes: ");
-            foreach(NodeType node in nodes){
-                Console.WriteLine(node);
+            foreach(NodeType[] node in nodes){
+                foreach(NodeType n in node){
+                    Console.Write(n+" ");
+                }
+                Console.WriteLine();
             }
         }
 
@@ -129,7 +139,7 @@ public static class SeedShenanigans
                     for(int i =seedStart+(seedEnd-seedStart)/numThreads*x; i<seedStart+(seedEnd-seedStart)/numThreads*(x+1);i++){
                         if(threadProgress[x]%2000==0){
                             TimeSpan t = TimeSpan.FromMilliseconds((DateTimeOffset.Now.ToUnixTimeMilliseconds() - start));
-                            string answer = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t.Hours, t.Minutes, t.Seconds, t.Milliseconds);
+                            string answer = string.Format("{4:D1}d:{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t.Hours, t.Minutes, t.Seconds, t.Milliseconds, t.Days);
                             Console.WriteLine("Thread "+x+" has searched "+threadProgress[x]+" seeds. Started on: "+(seedStart+(seedEnd-seedStart)/numThreads*x)+" Progress: "+(float)threadProgress[x]/((seedEnd-seedStart)/numThreads)*100+"% Found: "+threadDicts[x].Keys.Count+" Seeds with min nodes of: "+minNodes[x]+" Time: "+answer);
                         }
                         threadProgress[x]++;
@@ -195,11 +205,12 @@ public static class SeedShenanigans
             }
         }
         TimeSpan t1 = TimeSpan.FromMilliseconds((DateTimeOffset.Now.ToUnixTimeMilliseconds()-start));
-        string answer1 = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", 
+        string answer1 = string.Format("{4:D1}d:{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", 
                 t1.Hours, 
                 t1.Minutes, 
                 t1.Seconds, 
-                t1.Milliseconds);
+                t1.Milliseconds,
+                t1.Days);
 
         Console.WriteLine("Completion time: "+answer1);
         Console.ReadLine();
@@ -335,7 +346,7 @@ public static class SearchClass{
     public static bool isSpecific;
     public static int maxShopRolls = 2;
     public static List<Items.Item> targetItems;
-    public static List<NodeType> targetNodes;
+    public static List<NodeType[]> targetNodes;
     public static void FindItems(List<SE_Node> path, ItemSearchResults results, int seed){
         for(int i = 0; i < results.itemRarityResults.Count; i++){
             if(FindItemsWithRarity(results.itemRarityResults[i], path, seed)){
@@ -374,23 +385,29 @@ public static class SearchClass{
     private static bool FindItemsWithRarity(ItemRarityResults itemRarityResults, List<SE_Node> path, int seed){
         List<SE_Node> nodes = path.FindAll((x)=> x.Depth<searchDepth);
         List<Items.Item> targetItemsClone = new(targetItems);
-        List<NodeType> targetNodesClone = new(targetNodes);
+        List<NodeType[]> targetNodesClone = new(targetNodes);
 
         foreach(SE_Node node in nodes){
 
-            if(targetNodesClone.Contains(node.Type)){
+            if(findInternalNodeType(targetNodesClone,node.Type)!=-1){
                 List<Items.Item> items = investigateNode(node, itemRarityResults.itemRarity,seed);
+                int selectedTypeIndex = findInternalNodeType(targetNodesClone,node.Type);
                 foreach(Items.Item i in items){
-                    if(!targetNodesClone.Contains(node.Type)){
+                    
+                    if(selectedTypeIndex==-1){
                         break;
                     }
                     if(targetItemsClone.Contains(i)){
                         targetItemsClone.Remove(i);
-                        targetNodesClone.Remove(node.Type);
+                        targetNodesClone.RemoveAt(selectedTypeIndex);
                         ItemResultHit hit = new();
                         hit.item = i;
                         hit.node = node;
                         itemRarityResults.itemHits.Add(hit);
+                        if(node.Type==NodeType.Challenge){
+                            break;
+                        }
+                        selectedTypeIndex = findInternalNodeType(targetNodesClone,node.Type);
                     }
                 }
             }
@@ -399,6 +416,14 @@ public static class SearchClass{
             return true;
         }
         return false;
+    }
+    static int findInternalNodeType(List<NodeType[]> list, NodeType toFind){
+        for(int i = 0; i<list.Count;i++){
+            if(list[i].Contains(toFind)){
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static List<Items.Item> investigateNode(SE_Node node, float itemRarity,int seed){
